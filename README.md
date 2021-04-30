@@ -3,7 +3,7 @@
 
 **What are Channels and Kernels (according to EVA)?**
 
-**Kernals**: 
+**Kernels**: 
 In Convolutional neural network, the kernel is  a filter that  extract the features from the images.kernal is a computer , it is going to compute or extract something and result of then extraction  is called neuron, The kernel is a matrix that moves over the input data,convolves with the input data and gets the output as the matrix of dot products. Kernel moves on the input data by the stride value. If the stride value is 2, then kernel moves by 2 columns of pixels in the input matrix. In short, the kernel is used to extract high-level features like edges from the image.
 
 **Channels**:
