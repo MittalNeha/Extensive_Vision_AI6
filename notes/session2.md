@@ -25,7 +25,7 @@ Refer to session 1 which had the dog example. We zoomed into the dog image and l
 To compare diff nw, everyone starts at 224x224. If someone started at 1000x1000 than they would have more features just to begin with.
 At 7x7 there are enough features to fit more channels in the memory, so its prefferable than 5x5 or 3x3.
 
-![Resnet 50](resnet50.jpg)
+![Resnet 50](resnet50.png)
 
 
 
