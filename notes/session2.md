@@ -1,8 +1,14 @@
 # Notes from session 2
 nw - network
+
 bw -b/w - between
+
 info - information
+
 diff - different
+
+mm - memory
+
 
 ## Why do we use stride > 1
 
@@ -23,12 +29,29 @@ Refer to session 1 which had the dog example. We zoomed into the dog image and l
 
 ## Everyone starts at 224x224 or stops at 7x7?
 To compare diff nw, everyone starts at 224x224. If someone started at 1000x1000 than they would have more features just to begin with.
-At 7x7 there are enough features to fit more channels in the memory, so its prefferable than 5x5 or 3x3.
+At 7x7 there are enough features to fit more channels in the memory, so its prefferable than 5x5 or 3x3. Google 'pixal art'.
 
 ![Resnet 50](resnet50.png)
 
+## Suppose we have 512 channels in input, how many are channels are probable in output?
+1024, as we double the number of channels usually. We scale them up by 2^n as it has to fit in GPU, which will do similar to fit in its mm, rest will get wasted.
+By 2x: 32 -> 64 -> 128 -> 256 -> 512 -> 1024
+
+## What if we do by 4x: 32 -> 128 -> 512
+Then network is not learning slowly. Although we can fit 512 channels, we are asking it to skip and make features faster.
+This is going to be a balance of how good our hardware is. 2x is the max that we can do, or keep it same (Eg Resnet).
+
+## How many layers in my nn?
+Depends on your hardware (mm).
+
+## What is squeeze and expand arch & how it fares against resnet?
+Its as efficient as resnet but uses more mm, but stil covered to explain some concepts not covered in other arch.
+Resnet on the other hand, is a kick arch. First full block at 64, next at 128 etc.
+Resnet adds more layers in the block keeping channel size same. Since the channel size is same, the memory space needed is already known. That means we can then decide 
+Resnet wants to go with 5x5, but then use 3x3 twice. 
+
+![squeeze_expand_arch](squeeze_expand_arch.png)
 
 
 
-
-rlsOSGyJNOo
+https://www.youtube.com/watch?v=rlsOSGyJNOo
