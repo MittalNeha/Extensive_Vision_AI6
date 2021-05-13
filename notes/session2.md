@@ -50,8 +50,11 @@ Resnet on the other hand, is a kick arch. First full block at 64, next at 128 et
 Resnet adds more layers in the block keeping channel size same. Since the channel size is same, the memory space needed is already known. That means we can then decide 
 Resnet wants to go with 5x5, but then use 3x3 twice. 
 
-![squeeze_expand_arch](squeeze_expand_arch.png)
+![squeeze_expand_arch](squeeze_expand_arch.PNG)
 
+## Bias
+We are not going to use it much in this course. We when do batch normalization it just disappers. While calculating param, we dont consider bias.
 
+## 
 
 https://www.youtube.com/watch?v=rlsOSGyJNOo
