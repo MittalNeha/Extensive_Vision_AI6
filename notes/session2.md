@@ -18,7 +18,7 @@ Once the info comes down to 7x7 etc, there is very less info which is redundant.
 Also, we perform max pooling after we have extracted some features.
 
 ## How do we decide that max pooling is needed after these many layers?
-Refer to session 1 which had the dog example. We zoomed into the dog image and looked at the lowest level at which a feature was available. This was a manual excercise, which helped us to make the first 5 layers and then we did the max pooling. For rest of arch, rohan asks us to repeat the same 5 layers with max pooling b/w them. More details later. Cant do max pool in first layer either. *check more about this*
+Refer to session 1 which had the dog example. We zoomed into the dog image and looked at the lowest level at which a feature was available. This was a manual excercise, which helped us to make the first 5 layers and then we did the max pooling. For rest of arch, rohan asks us to repeat the same 5 layers with max pooling b/w them. More details later. Cant do max pool in first layer either. Maxpooling helps us to filter info instead of loosing info, by scaling in z axis. *check more about this*
 
 ## What are the (2) types of operation done by neural networks?
 
@@ -55,6 +55,16 @@ Resnet wants to go with 5x5, but then use 3x3 twice.
 ## Bias
 We are not going to use it much in this course. We when do batch normalization it just disappers. While calculating param, we dont consider bias.
 
-## 
+## Memory requirement
+For Resnet first block: (224x244x3 + 112x112x32 + 64x64x6) = 576512 pixels , this is the first block only.
+If we input 1000 images, we will have 576MB memory for first block only, so in order to cut mm requirement, we use smaller batch size (of usually 32).
+But it is important to pick images randomly from classes and shuffle them.
+Second marraige example. going around 100 guests at one time to ask for feedback.
+
+## Information in the image
+Any random image will not have information. *check information entropy*
+Just availability of pixels in form of image is not information. It means a lot of things. Only if you are structuring this, if you can arrange the pixels in a way that it can convey something, then the info goes up. We should also focus on the amount OF info OF the class. 
+
+
 
 https://www.youtube.com/watch?v=rlsOSGyJNOo
