@@ -63,7 +63,7 @@ Second marraige example. going around 100 guests at one time to ask for feedback
 
 ## Information in the image
 Any random image will not have information. *check information entropy*
-Just availability of pixels in form of image is not information. It means a lot of things. Only if you are structuring this, if you can arrange the pixels in a way that it can convey something, then the info goes up. We should also focus on the amount OF info OF the class. 
+Just availability of pixels in form of image is not information. It means a lot of things. Only if you are structuring this, if you can arrange the pixels in a way that it can convey something, then the info goes up. We should also focus on the amount OF info OF the class. Eg: an image of dog with white background contains more info (of dog) than image of dog in nature.
 
 
 
