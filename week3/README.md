@@ -1,13 +1,32 @@
 # Week 3 pytorch assignment for group 11
 
-Your code MUST be:
+# Problem Statement:
+Write a neural network that can:
+take 2 inputs:
+an image from MNIST dataset, and
+a random number between 0 and 9
+and gives two outputs:
+the "number" that was represented by the MNIST image, and
+the "sum" of this number with the random number that was generated and sent as the input to the network
 
-## The Network
-![image](https://user-images.githubusercontent.com/13148910/119126865-3b017280-ba51-11eb-85b0-eed94144130b.png)
-The Conv2d-9 layer outputs a softmax predicting the MNIST image. This is concatenated with the one hot representation of a random number between 0 and 9 and passed through Fully connected Layers, as shown in the model summary
+![image](https://user-images.githubusercontent.com/14163123/119148001-b53df100-ba69-11eb-9efe-8a9dd08c9ea6.png)
 
-### Loss Functions
-For the training the MNIST dataset, we used the <b> NLL Loss </b> and for the adder network, used the <b> MSELoss </b>
+
+# Our Approach:
+1. Generate a random number between 0 to 9 and add that to the label of the MNIST image loaded using Data Loader and convert the random number to OHE. 
+2. The network is broken into 2 parts - 
+      a. Convolution Network that learns to predict the number from MNIST Images
+      b. Linear network that takes in output of convolution output and the OHE of the random number to predict the sum. 
+      c. Loss function for Mnist is classification (cross entropy loss) and loss for linear is Mean square error. 
+3. Train the network simultaneously, with total loss = loss of MNIST and loss of MLP network. 
+4. The high level approach is captured in the below figure. 
+
+![image](https://user-images.githubusercontent.com/14163123/119149004-b3286200-ba6a-11eb-9e5d-3fdee1d24f70.png)
+
+
+
+
+
 
 ## Data Generation
 A random number is generated between 0 and 9 and added to the true label of the MNIST dataset. </br>
@@ -40,6 +59,13 @@ class CombinedData(Dataset):
 Concatenated the pure softmax output from the MNIST network with the one_hot representation of the random number.
 
 `in2 = torch.cat((out1, x2.view(-1, 10)), dim=1)`
+
+## The Network
+![image](https://user-images.githubusercontent.com/13148910/119126865-3b017280-ba51-11eb-85b0-eed94144130b.png)
+The Conv2d-9 layer outputs a softmax predicting the MNIST image. This is concatenated with the one hot representation of a random number between 0 and 9 and passed through Fully connected Layers, as shown in the model summary
+
+### Loss Functions
+For the training the MNIST dataset, we used the <b> NLL Loss </b> and for the adder network, used the <b> MSELoss </b>
 
 ## Evaluating Results
 For every epoch, we calculate the number of correct predictions and the total loss from each batch. After training the entire epoch this is used to get the overall loss and accuracy of the trained model. These numbers give an idea of how the model is progressing. Ideally, the loss should decrease and the accuracy should increase with each epoch. 
