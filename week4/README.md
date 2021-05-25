@@ -18,7 +18,7 @@ The equations for backpropagation of this network are derived [here](https://doc
 Squeeze and Expand
 
 |No.	|Param	|Model	|Accuracy (10ep)	|Kernel progression	|Remarks
-|--|:-------------:|------:|----------|:-------------:|------:|
+|--|:-------------:|------:|----------|-------------|------|
 1	|6.38M||99.26|    | Original/base.|
 2	|0.92M|Net|99.05|12->24->48->96->192->384   |Tops at 99.17|
 3	|221K|Net2|98.89|32->64->32->MP->32->64->128->32->MP->32->64->128   |Used 1x1 to reduce kernels|
