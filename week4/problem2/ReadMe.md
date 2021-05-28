@@ -14,7 +14,7 @@ A model was trained with **19,678** parameters and **99.56**% test accuracy.
 
 #### Model parameters
 
-Number of layers:
+Number of layers: 7 Convolution Layers, 2 Transition Layers
 
 Batch Size: 64
 Optimizer: SGD
@@ -22,8 +22,7 @@ Loss Function: NLL Loss
 
 Learning rate for training:
 
-![chart](C:\Work\EVA6\Extensive_Vision_AI6\week4\problem2\images\ReadMe\chart.png)
-
+<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/chart.png?raw=true" style="zoom: 80%;" />
 
 
 #### Model Architecture
@@ -55,7 +54,7 @@ Learning rate for training:
 
 The MNIST dataset is a set of small (28 by 28) images. If you zoom in, to see the pixelated image, the handwriting stride is within a 5x5 box. Hence, a 5x5 receptive field before a Max pooling layer should be enough to retain all the information related to edges/corners of the image. Keeping this in mind, the base network that we started experimenting with as below:
 
-<img src="https://lh5.googleusercontent.com/iAIMNQwmrl9EGpOxtXpDzlYQBAraG7ftiJaEtGVwyye5aTMcEhwDAbwDP-HQjdMlL_FjpAxp3Z2WeDfM5PUMH0oOj3DXs0BmP3BqgYNGWxSZxeWCx1PHKTPgsFEpdPcFIGS9-tfJ" alt="img" style="zoom:40%;" />
+<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/base_network.jpg" alt="img" style="zoom:35%;" />
 
 
 
@@ -65,13 +64,12 @@ Listing some of the parameters that affect the accuracy of the model:
 
    To start with BN and Dropout were applied after each Convolution layer following the standard practice. Since the last convolution goes into a GAP layer, the BN and Dropout was removed. As a result, it was observed that the training and accuracy curves came closer
 
-   <image>
+   <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/exp_1.jpg" alt="img" style="zoom:35%;" />
 
 2. The distance of MaxPooling from Prediction
 
    To play with this, the second Max pooling layer was removed and a deeper model was trained. This model had 5 convolution layers after the first Max pooling layer. This removed the gap between the training and the test curves even more.
-
-   <image>
+   <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/exp_2.jpg" alt="img" style="zoom:50%;" />
 
 3. Receptive Field of 7x7 in the First Block
 
