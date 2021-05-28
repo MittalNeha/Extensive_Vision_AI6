@@ -5,9 +5,6 @@
 
 
 
-
-[TOC]
-
 ## Neural Network 
 
 This exercise is primarily focused on understanding the math and logic behind how a neural network works. Solved with a simple 2 layer Fully connected layer network. In this exercise, we will look at how forward propagation works, how loss is calculated for different problem objectives, how we perform back propagation to update the weights (learning process) and finally how learning rate plays a role in weights update. 
