@@ -20,11 +20,12 @@ The equations for backpropagation of this network are derived [here](https://doc
 
 2. **Part 2**:  
 
-#### Refer to link below for details on the network
+#### Refer to link below for detailed readme
 
 https://github.com/MittalNeha/Extensive_Vision_AI6/tree/main/week4/problem2#readme
 
 Number of parameters: 19,678
 Test Accuracy: 99.56%
+Notebook [Link] (https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/Session_4_model.ipynb)
 
 <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/final_acc_plots.jpg?raw=false" style="zoom: 80%;" />
