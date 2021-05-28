@@ -26,6 +26,7 @@ https://github.com/MittalNeha/Extensive_Vision_AI6/tree/main/week4/problem2#read
 
 Number of parameters: 19,678
 Test Accuracy: 99.56%
-Notebook [Link] (https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/Session_4_model.ipynb)
+
+[Notebook Link] (https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/Session_4_model.ipynb)
 
 <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/final_acc_plots.jpg?raw=false" style="zoom: 80%;" />
