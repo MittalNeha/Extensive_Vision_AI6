@@ -10,7 +10,7 @@ Train the MNIST dataset under the following restrictions
 
 ## Solution
 
-A model was trained with **19,678** parameters and **99.56**% test accuracy.
+A [model](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/Session_4_model.ipynb) was trained with **19,678** parameters and **99.56**% test accuracy.
 
 #### Model parameters
 
@@ -28,6 +28,7 @@ Learning rate for training:
 #### Model Architecture
 
 12->24->36->MP->12->12->24->MP->12->12->24->GAP(7x7)->Dense-> 10 outputs
+<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/model_diagram.jpeg?raw=true" style="zoom: 80%;" />
 
 ###### Highlights
 
@@ -43,9 +44,9 @@ Learning rate for training:
 
 |                            Model                             | No. Parameters | Accuracy |
 | :----------------------------------------------------------: | :------------: | :------: |
-| model_1<br />12->24->MP->12->12->24->MP-><br />12->12->24->GAP(7x7)->Dense |     11,650     |  99.41   |
-| model_2<br />10->20->30>MP->10->10->20->MP-><br />10->10->20->GAP->Dense |     13,780     |  99.50   |
-| model_3<br />2->24->24->MP->12->12->24->MP-><br />12->12->24->GAP(7x7)->Dense |     16,906     |  99.49   |
+| [model_1](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/Experiments/Session_4_model1.ipynb)<br />12->24->MP->12->12->24->MP-><br />12->12->24->GAP(7x7)->Dense |     11,650     |  99.41   |
+| [model_2](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/Experiments/Session_4_model2.ipynb)<br />10->20->30>MP->10->10->20->MP-><br />10->10->20->GAP->Dense |     13,780     |  99.50   |
+| [model_3](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/Experiments/Session_4_model2.ipynb)<br />2->24->24->MP->12->12->24->MP-><br />12->12->24->GAP(7x7)->Dense |     16,906     |  99.49   |
 |                                                              |                |          |
 
 
@@ -54,7 +55,7 @@ Learning rate for training:
 
 The MNIST dataset is a set of small (28 by 28) images. If you zoom in, to see the pixelated image, the handwriting stride is within a 5x5 box. Hence, a 5x5 receptive field before a Max pooling layer should be enough to retain all the information related to edges/corners of the image. Keeping this in mind, the base network that we started experimenting with as below:
 
-<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/base_network.jpg" alt="img" style="zoom:35%;" />
+<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/base_network.jpg?raw=true" alt="img" style="zoom:35%;" />
 
 
 
@@ -64,12 +65,12 @@ Listing some of the parameters that affect the accuracy of the model:
 
    To start with BN and Dropout were applied after each Convolution layer following the standard practice. Since the last convolution goes into a GAP layer, the BN and Dropout was removed. As a result, it was observed that the training and accuracy curves came closer
 
-   <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/exp_1.jpg" alt="img" style="zoom:35%;" />
+   <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/exp_1.jpg?raw=true" alt="img" style="zoom:35%;" />
 
 2. The distance of MaxPooling from Prediction
 
    To play with this, the second Max pooling layer was removed and a deeper model was trained. This model had 5 convolution layers after the first Max pooling layer. This removed the gap between the training and the test curves even more.
-   <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/exp_2.jpg" alt="img" style="zoom:50%;" />
+   <img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week4/images/exp_2.jpg?raw=true" alt="img" style="zoom:50%;" />
 
 3. Receptive Field of 7x7 in the First Block
 
