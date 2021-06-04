@@ -5,7 +5,7 @@
 
 ## Code 1 - Basic Light Model
 
-[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_code1.ipynb)
+[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_Bhaskar_exp1.ipynb)
 
 1. Make a light model with less than 10k parameters to train MNIST
 
@@ -33,7 +33,7 @@
 
 ## Code 2 - Regularization
 
-[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_code2.ipynb)
+[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_Bhaskar_exp2.ipynb)
 
 1. Targets: Allow the network to train more in order to improve accuracies. 
 2. Results:
@@ -49,7 +49,7 @@
 
 ## Code 3 - Augmentation
 
-[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_code3.ipynb)
+[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_Bhaskar_exp3.ipynb)
 
 1. Targets: Make training more challenging
 2. Results:
@@ -65,7 +65,7 @@
 
 ## Code 4 - Final Model
 
-[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_code4.ipynb)
+[CODE](https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/Session_5_Bhaskar_exp4.ipynb)
 
 1. Targets: Achieve the final accuracy within 15 epochs
 2. Results:
@@ -76,7 +76,7 @@
    - Played with the learning rate scheduler to achieve the high accuracy faster.
    - However, we trained it further to see that accuracy > 99.4 was maintained. 
 
-<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/images/stopplayinggod.jpg?raw=false" style="zoom: 60%;" />
+<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/images/CAPACITY.jpg?raw=false" style="zoom: 60%;" />
 
 ## Team Members
 
