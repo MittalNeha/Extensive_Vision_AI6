@@ -76,11 +76,7 @@
    - Played with the learning rate scheduler to achieve the high accuracy faster.
    - However, we trained it further to see that accuracy > 99.4 was maintained. 
 
-[Just Like God]
-
-## References
-
-
+<img src="https://github.com/MittalNeha/Extensive_Vision_AI6/blob/main/week5/images/stopplayinggod.jpg?raw=false" style="zoom: 60%;" />
 
 ## Team Members
 
