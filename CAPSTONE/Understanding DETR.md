@@ -1,10 +1,10 @@
 # CAPSTONE Submissions
 
-- [Understanding the architecture for Panoptic Segmentation](#problem-statement)
-  - [Multi Head Attention]()
-  - FPN style CNN
+- [Understanding the architecture for Panoptic Segmentation](#Understanding%20DETR.md#understanding-the-architecture-for-panoptic-segmentation)
+  - [Multi Head Attention](#multi-head-attention)
+  - [FPN style CNN](#fpn-style-cnn)
 - [Sample](#sample)
-- Training a custom DeTr
+- [Training a custom DeTr](#training-a-custom-detr)
 
 
 # Understanding the architecture for Panoptic Segmentation
