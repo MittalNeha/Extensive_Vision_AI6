@@ -26,8 +26,8 @@ To begin with, the input is 3xHxW, which is 3 channels. DETR uses Resnet50 backb
 
 The decoder output, which is d x N class predictions is passed through a Multi head attention with M heads to get N x M x H/32 x W/32 Attention maps. An attention function is applied on the encoded images along with the class predictions. This means that the encoded images form the query and key vectors for the multi head attention. The decoder output, which is the N output embeddings for the predictions, is fed as queries to this block.
 
-<p align="center">
-  <img src="images/attention.png" alt="drawing">
+<p align="left">
+  <img src="images/attention.png" alt="drawing" width="300">
 </p>
 The output from this is N x M x H/32 x W/32. Here N is the class predictions. These are the N attention maps, where each class has M classes and is of dimension H/32 x W/32.
 
@@ -37,14 +37,14 @@ The output from this is N x M x H/32 x W/32. Here N is the class predictions. Th
 
 Next, the resolution of these attention maps need to be increased so that it later can be masked on the image of original resolution. A FPN (Feature Pyramid Network) style CNN is used for the same which gets outputs from the backbone ResNet network and adds them to the convolution outputs. The backbone used here is Resnet50 which has 5 conv layers as is shown in this table.
 
-<p align="center">
-  <img src="images/resnet-architectures-34-101.png" alt="drawing">
+<p align="left">
+  <img src="images/resnet-architectures-34-101.png" alt="drawing" width="500">
 </p>
 
 A FPN has 2 pathways, one Bottom-Up which is basically the ResNet50 backbone used in DETR and the other is the Top Down Pathway, used to create the Masks Logits. A more clear picture of all the inputs to the FPN style CNN is shown in the image below :
 
 <p align="center">
-  <img src="images/FPN-DETR.png" alt="drawing">
+  <img src="images/FPN-DETR.png" alt="drawing"  width="600">
 </p>
 
 
