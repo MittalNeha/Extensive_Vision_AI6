@@ -73,7 +73,13 @@ class CVATtoCOCO:
         # print('val_num {}'.format(len(X_val)))
         # print(X_val)
         for img in json_input['images']:
+            file_path = self.rootdir + d + '/images/' + img['file_name']
+            if not os.path.exists(file_path):
+                continue
             img_id = img['id']
+
+            #check for image format for exceptions
+            self.handle_image_exceptions(file_path)
 
             if (len(imgToAnns[img_id]) == 0):
                 # No annotations for this image move it to test data
@@ -85,10 +91,6 @@ class CVATtoCOCO:
 
             if img_id in X_train:
                 # This image to be kept for train
-
-                #check for image format for exceptions
-                file_path = self.rootdir + d + '/images/' + img['file_name']
-                self.handle_image_exceptions(file_path)
 
                 # print("TRAIN:renaming {} to {}".format(file_path,
                 #                                        self.outdir + self.traindir + d + '/' + img['file_name']))
@@ -109,9 +111,6 @@ class CVATtoCOCO:
             else:
                 # Image for val
 
-                # check for image format for exceptions
-                file_path = self.rootdir + d + '/images/' + img['file_name']
-                self.handle_image_exceptions(file_path)
                 # move all the images at the X_val index to the validation directory
                 # print("VAL:renaming {} to {}".format(file_path,
                 #                                      self.outdir + self.valdir + d + '/' + img['file_name']))
