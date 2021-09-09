@@ -132,13 +132,11 @@ class CVATtoCOCO:
         return json_input['categories']
 
     def handle_image_exceptions(self, file_path):
-        if file_path.rsplit('.', 1)[1] == 'png':
-            orig_image = Image.open(file_path)
-            # convert RGBA image to RGB
-            if orig_image.mode == 'RGBA':
-                rgb_image = Image.new("RGB", orig_image.size, (255, 255, 255))
-                rgb_image.paste(orig_image, mask=orig_image.split()[3])
-                rgb_image.save(file_path)
+        orig_image = Image.open(file_path)
+        # change format to RGB
+        if orig_image.mode != 'RGB':
+            orig_image = orig_image.convert('RGB')
+            orig_image.save(file_path)
 
     def save_annotations(self, annotdir):
         os.makedirs(self.outdir + annotdir,exist_ok=True)
