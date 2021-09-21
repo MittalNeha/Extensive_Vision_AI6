@@ -6,6 +6,10 @@ import os
 import json
 from sklearn.model_selection import train_test_split
 from PIL import Image
+import pickle
+import numpy as np
+import torch
+
 
 class CVATtoCOCO:
     train_image_cnt = 1
@@ -26,9 +30,9 @@ class CVATtoCOCO:
     testdir = 'materials_test/'
     valdir = 'materials_val/'
 
-    def __init__(self, data_dir, split_test_size=0.10, start_cat_id = 0):
+    def __init__(self, data_dir, split_test_size=0.10, start_cat_id=0):
 
-        self.rootdir = data_dir #data_dir.rsplit('/', 1)[0]
+        self.rootdir = data_dir  # data_dir.rsplit('/', 1)[0]
         if data_dir[-1] == '/':
             self.outdir = data_dir.rsplit('/', 2)[0] + self.outdir
         else:
@@ -38,9 +42,9 @@ class CVATtoCOCO:
 
         # os.makedirs(self.outdir,exist_ok=True)
 
-        os.makedirs(self.outdir + self.traindir,exist_ok=True)
-        os.makedirs(self.outdir + self.testdir,exist_ok=True)
-        os.makedirs(self.outdir + self.valdir,exist_ok=True)
+        os.makedirs(self.outdir + self.traindir, exist_ok=True)
+        os.makedirs(self.outdir + self.testdir, exist_ok=True)
+        os.makedirs(self.outdir + self.valdir, exist_ok=True)
 
         for idx, d in enumerate(os.listdir(data_dir)):
             if os.path.isfile(data_dir + d):
@@ -49,16 +53,16 @@ class CVATtoCOCO:
 
             # read the json file
             # print(self.rootdir + d + '/coco.json')
-            f = open(self.rootdir + '/' +  d + '/coco.json')
+            f = open(self.rootdir + '/' + d + '/coco.json')
             labels = json.load(f)
-            cats= self.parse_coco_dataset(labels, d, start_cat_id)
+            cats = self.parse_coco_dataset(labels, d, start_cat_id)
             f.close()
 
             # extract categories and change the category id.
             # cats_json = json.load(cats)
             cats[0]['id'] = start_cat_id
             self.all_categories.append(cats[0])
-            start_cat_id +=1
+            start_cat_id += 1
 
     def create_file_str(self, num, n_zeros=10):
         num_str = str(int(num))
@@ -86,41 +90,52 @@ class CVATtoCOCO:
                 print(img['file_name'])
                 print("renaming {} to {}".format(self.rootdir + d + '/images/' + img['file_name'],
                                                  self.outdir + self.testdir + d + '_' + img['file_name']))
-                shutil.move(self.rootdir + d + '/images/' + img['file_name'], self.outdir + self.testdir + d + '_' + img['file_name'])
+                shutil.copy(self.rootdir + d + '/images/' + img['file_name'],
+                            self.outdir + self.testdir + d + '_' + img['file_name'])
                 continue
 
             if img_id in X_train:
                 # This image to be kept for train
                 # update the image id in both 'images' and 'annotations'
                 img['id'] = self.train_image_cnt  # some update to the image_id
+                # file name should be same as the id
+                img['file_name'] = self.create_file_str(img['id']) + '.jpg'
+                ratios = self.handle_image_exceptions(file_path, self.outdir + self.traindir + img['file_name'])
+                if ratios != (1, 1):
+                    img["width"] = img["width"] * ratios[0]
+                    img["height"] = img["height"] * ratios[1]
                 for ann in imgToAnns[img_id]:
                     ann['image_id'] = img['id']
                     ann['id'] = self.train_annot_cnt
                     ann['category_id'] = cat_id
                     self.train_annot_cnt += 1
                     self.json_train_annot.append(ann)
-                #file name should be same as the id
-                img['file_name'] = self.create_file_str(img['id']) + '.jpg'
-                self.json_train_imgs.append(img)
-                # check for image format for exceptions
-                self.handle_image_exceptions(file_path, self.outdir + self.traindir + img['file_name'])
+                    self.resize_ann(ann, ratios)
 
+                self.json_train_imgs.append(img)
                 self.train_image_cnt += 1
             else:
                 # Image for val
 
                 # update the image id in both 'images' and 'annotations'
                 img['id'] = self.val_image_cnt  # some update to the image_id
+                img['file_name'] = self.create_file_str(img['id']) + '.jpg'
+                # check for image format for exceptions
+                ratios = self.handle_image_exceptions(file_path, self.outdir + self.valdir + img['file_name'])
+
+                if ratios != (1, 1):
+                    img["width"] = img["width"]* ratios[0]
+                    img["height"] = img["height"]*ratios[1]
+
                 for ann in imgToAnns[img_id]:
                     ann['image_id'] = img['id']
                     ann['id'] = self.val_annot_cnt
                     ann['category_id'] = cat_id
                     self.val_annot_cnt += 1
                     self.json_val_annot.append(ann)
-                img['file_name'] = self.create_file_str(img['id']) + '.jpg'
+                    self.resize_ann(ann, ratios)
+
                 self.json_val_imgs.append(img)
-                # check for image format for exceptions
-                self.handle_image_exceptions(file_path, self.outdir + self.valdir + img['file_name'])
 
                 self.val_image_cnt += 1
         print('val_annot {}'.format(len(self.json_val_annot)))
@@ -129,12 +144,17 @@ class CVATtoCOCO:
     def handle_image_exceptions(self, file_path, out_file_path):
         orig_image = Image.open(file_path)
         # change format to RGB
-        #also change the file type to jpg
+        # also change the file type to jpg
         if orig_image.mode != 'RGB':
             orig_image = orig_image.convert('RGB')
 
-        orig_image.save(out_file_path)
-        os.remove(file_path)
+        # limit the size of the image such that the max_height is 800 and other dim <=1333
+        rescaled_img, ratios = self.resize(orig_image)
+
+        rescaled_img.save(out_file_path)
+        # orig_image.save(out_file_path)
+        # os.remove(file_path)
+        return ratios
 
     def combine(self, coco_classes, coco_categories):
         print("CVAT num classes {}".format(len(self.CLASSES)))
@@ -155,9 +175,48 @@ class CVATtoCOCO:
 
         return coco_categories
 
+    def resize(self, image, max_height=800):
+
+        w, h = image.size
+
+        if h > max_height:
+            d_h = max_height
+            d_w = w * max_height / h
+            if d_w > 1333:
+                d_w = 1333
+                d_h = h * d_w / w
+        else:
+            return image, (1,1)
+        rescaled_image = image.resize((int(d_w), int(d_h)))
+
+        ratios = tuple(float(s) / float(s_orig) for s, s_orig in zip(rescaled_image.size, image.size))
+        return rescaled_image, ratios
+
+    def resize_ann(self, ann, ratios):
+
+        ratio_width, ratio_height = ratios
+        target = ann.copy()
+        if ratios == (1,1):
+            return target
+        if "bbox" in target:
+            boxes = np.array(target["bbox"])
+            scaled_boxes = boxes * np.array([ratio_width, ratio_height, ratio_width, ratio_height])
+            target["bbox"] = list(scaled_boxes)
+
+        if "area" in target:
+            area = target["area"]
+            scaled_area = area * (ratio_width * ratio_height)
+            target["area"] = scaled_area
+
+        if "segmentation" in target:
+            segmentation = np.array(target["segmentation"]).reshape(-1,2)
+            scaled_segmentation = segmentation * ratios
+            target["segmentation"] = list(scaled_segmentation.reshape(-1))
+
+        return target
 
     def save_annotations(self, annotdir):
-        os.makedirs(self.outdir + annotdir,exist_ok=True)
+        os.makedirs(self.outdir + annotdir, exist_ok=True)
 
         val_res_file = {
             "licenses": [{"name": "", "id": 0, "url": ""}],
@@ -186,7 +245,6 @@ class CVATtoCOCO:
             f.write(json_str)
 
 
-
 CLASSES = ['N/A',
            'misc_stuff']
 # map coco categories to custom
@@ -202,7 +260,7 @@ def getCocoCats(inputJsonFile):
     cocoCats = cocoJson["categories"]
 
     max_catid = cocoCats[-1]["id"]
-    cocoMap = [None] * (max_catid+1)
+    cocoMap = [None] * (max_catid + 1)
 
     newCatId = 2
     for idx, cat in enumerate(cocoCats):
@@ -217,9 +275,10 @@ def getCocoCats(inputJsonFile):
 
     return cocoMap, newCatId
 
+
 original_coco_file = "/home/neha/Downloads/panoptic_annotations_trainval2017/annotations/panoptic_val2017.json"
 cocoMap, num_cats = getCocoCats(original_coco_file)
-dataset = CVATtoCOCO('/home/neha/Work/eva6/capstone/data_subset/', start_cat_id=num_cats)
+dataset = CVATtoCOCO('/home/neha/Work/eva6/capstone/data_subset2/', start_cat_id=num_cats)
 combine_categories = dataset.combine(CLASSES, LABELS)
 print("DONE")
 dataset.save_annotations('annotations/')
