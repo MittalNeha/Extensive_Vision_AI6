@@ -12,6 +12,8 @@ import torch
 import util.misc as utils
 from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
+from PIL import Image
+import io
 
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -149,3 +151,64 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         stats['PQ_th'] = panoptic_res["Things"]
         stats['PQ_st'] = panoptic_res["Stuff"]
     return stats, coco_evaluator
+
+@torch.no_grad()
+def inference(model, postprocessors, data_loader, device, coco_panoptic_path):
+    model.eval()
+
+    metric_logger = utils.MetricLogger(delimiter="  ")
+    # metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
+    header = 'Infer:'
+
+    # Save the json and mask images
+    images = []
+    annotations = []
+
+    def create_file_str(num, n_zeros=10):
+        num_str = str(int(num))
+        num_str = num_str.zfill(n_zeros)
+        return num_str
+
+    for samples, masks, targets in metric_logger.log_every(data_loader, 10, header):
+        samples = samples.to(device)
+        # targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+        outputs = model(samples)
+
+        #Postprocess the outputs
+        orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
+        mask_labels = torch.stack([t["labels"] for t in targets], dim=0)
+        results = postprocessors(outputs, orig_target_sizes, masks, mask_labels)
+        # print(len(results))
+
+        #"png_string" needs to be saved as the mask and "segments_info" as the annotations json
+        # for mask in results
+
+        for segment_info, target in zip(results, targets):
+            # assume that the input dataset is already created such that the image_id == filename + .jpg
+            file_str = create_file_str(target["image_id"])
+            inputFileName = file_str + '.jpg'
+            outputFileName = file_str + '.png'
+            images.append({"id": int(target["image_id"]),
+                           "width": int(target['orig_size'][1]),
+                           "height": int(target['orig_size'][0]),
+                           "file_name": inputFileName})
+            annotations.append({'image_id': int(target["image_id"]),
+                                'file_name': outputFileName,
+                                "segments_info": segment_info['segments_info']})
+            panopticImagePath = coco_panoptic_path
+            Image.open(io.BytesIO(segment_info['png_string'])).save(os.path.join(panopticImagePath, outputFileName))
+
+        #also, the name of the mask will be the image_id. and the segments_info "id" to be derived from the RGB value of each segment
+    d = {'images': images,
+         'annotations': annotations,
+         # 'categories': categories  #TODO Neha categories need to be copied from somewhere?
+         }
+
+    # gather the stats from all processes
+    metric_logger.synchronize_between_processes()
+    print("Averaged stats:", metric_logger)
+
+    return d
+
+    # return results, targets

@@ -40,6 +40,7 @@ class CocoMatrialsDetection(torchvision.datasets.CocoDetection):
 def convert_poly_to_mask(segmentations, height, width):
     masks = []
     for polygons in segmentations:
+
         points = np.array(polygons, dtype=np.int32).reshape(-1, 2)
         masks.append(points)
 
@@ -48,12 +49,10 @@ def convert_poly_to_mask(segmentations, height, width):
                            np.uint8)
     if masks:
         # masks = torch.stack(masks, dim=0)
-
         cv.drawContours(image_masks, masks, -1, (255, 255, 255), -1)
     else:
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
     return masks, image_masks
-
 
 class ConvertPolyToMask(object):
     def __init__(self, return_masks=False):
@@ -102,8 +101,8 @@ class ConvertPolyToMask(object):
         target = {}
         target["boxes"] = boxes
         target["labels"] = torch.unique(classes)
-        if self.return_masks:
-            target["masks"] = masks
+        # if self.return_masks:
+        #     target["masks"] = masks
         target["image_id"] = image_id
         if keypoints is not None:
             target["keypoints"] = keypoints
@@ -130,27 +129,10 @@ def make_coco_transforms(image_set):
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    scales = [480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
-
-    if image_set == 'train':
-        return T.Compose([
-            T.RandomHorizontalFlip(),
-            T.RandomSelect(
-                T.RandomResize(scales, max_size=1333),
-                T.Compose([
-                    T.RandomResize([400, 500, 600]),
-                    T.RandomSizeCrop(384, 600),
-                    T.RandomResize(scales, max_size=1333),
-                ])
-            ),
-            normalize,
-        ])
-
-    if image_set == 'val':
-        return T.Compose([
-            T.RandomResize([800], max_size=1333),
-            normalize,
-        ])
+    return T.Compose([
+        T.RandomResize([800], max_size=1333),
+        normalize,
+    ])
 
     raise ValueError(f'unknown {image_set}')
 

@@ -278,7 +278,7 @@ def getCocoCats(inputJsonFile):
 
 original_coco_file = "/home/neha/Downloads/panoptic_annotations_trainval2017/annotations/panoptic_val2017.json"
 cocoMap, num_cats = getCocoCats(original_coco_file)
-dataset = CVATtoCOCO('/home/neha/Work/eva6/capstone/data_subset2/', start_cat_id=num_cats)
+dataset = CVATtoCOCO('/home/neha/Work/eva6/capstone/data_subset/', start_cat_id=num_cats)
 combine_categories = dataset.combine(CLASSES, LABELS)
 print("DONE")
 dataset.save_annotations('annotations/')

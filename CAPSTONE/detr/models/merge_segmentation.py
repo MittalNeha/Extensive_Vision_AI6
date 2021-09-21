@@ -3,6 +3,7 @@
 This file provides the definition of the convolutional heads used to predict masks, as well as the losses
 """
 import io
+import pickle
 from collections import defaultdict
 from typing import List, Optional
 
@@ -61,6 +62,12 @@ class PostProcessPanopticInstance(nn.Module):
         assert len(out_logits) == len(raw_masks) == len(target_sizes)
         preds = []
 
+        # Load the coco to custom class mapping
+        # Save the mapping for the coco categories, since the indexes have changed
+        file = open('../map_coco_categories.p', 'rb')
+        cocomap = pickle.load(file)
+        file.close()
+
         def prepare_instance_mask(input_segments, raw_masks):
             # giving more weightage to this mask so that it gets priority over the other class masks
 
@@ -90,6 +97,11 @@ class PostProcessPanopticInstance(nn.Module):
             cur_masks = cur_masks[keep]
             cur_masks = interpolate(cur_masks[:, None], to_tuple(size), mode="bilinear").squeeze(1)
             cur_boxes = box_ops.box_cxcywh_to_xyxy(cur_boxes[keep])
+
+            # print("Classes before: {}".format(cur_classes))
+            # Map the coco class index to the custom class index
+            cur_classes = torch.IntTensor([cocomap[cl] for cl in cur_classes])
+            # print("Classes after: {}".format(cur_classes))
 
             h, w = cur_masks.shape[-2:]
             assert len(cur_boxes) == len(cur_classes)

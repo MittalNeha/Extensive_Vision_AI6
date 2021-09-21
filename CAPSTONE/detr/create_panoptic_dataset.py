@@ -15,7 +15,7 @@ import util.misc as utils
 from datasets import build_dataset, get_coco_api_from_dataset
 from engine import evaluate, train_one_epoch, inference
 from models import build_model
-from hubconf import detr_resnet50, detr_resnet50_panoptic
+from hubconf import detr_resnet50_panopticinstance
 from PIL import Image
 import io
 import os
@@ -124,83 +124,30 @@ def main(args):
 
     #TODO: Needs to be replaced with getting the model from hub
     #get the model from hib
-    model, postprocessors = detr_resnet50_panoptic(pretrained=True, return_postprocessor=True)
+    model, postprocessors = detr_resnet50_panopticinstance(pretrained=True, return_postprocessor=True)
     model.eval()
-    # # postprocessors = build_model(args)
-    # model, criterion, postprocessors = build_model(args)
-    # model.to(device)
-    #
-    # model_without_ddp = model
-    # if args.distributed:
-    #     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-    #     model_without_ddp = model.module
-    # n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    # print('number of params:', n_parameters)
-    #
-    # param_dicts = [
-    #     {"params": [p for n, p in model_without_ddp.named_parameters() if "backbone" not in n and p.requires_grad]},
-    #     {
-    #         "params": [p for n, p in model_without_ddp.named_parameters() if "backbone" in n and p.requires_grad],
-    #         "lr": args.lr_backbone,
-    #     },
-    # ]
-    # optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
-    #                               weight_decay=args.weight_decay)
-    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
 
-    if args.distributed:
-        sampler_train = DistributedSampler(dataset_train)
-        sampler_val = DistributedSampler(dataset_val, shuffle=False)
-    else:
-        sampler_train = torch.utils.data.SequentialSampler(dataset_train)
-        sampler_val = torch.utils.data.SequentialSampler(dataset_val)
+    # if args.distributed:
+    #     sampler_train = DistributedSampler(dataset_train)
+    #     sampler_val = DistributedSampler(dataset_val, shuffle=False)
+    # else:
+    sampler_train = torch.utils.data.SequentialSampler(dataset_train)
+    sampler_val = torch.utils.data.SequentialSampler(dataset_val)
 
-    # batch_sampler_train = torch.utils.data.BatchSampler(
-    #     sampler_train, args.batch_size, drop_last=True)
-
-    data_loader_train = DataLoader(dataset_train, batch_sampler=sampler_train,
+    data_loader_train = DataLoader(dataset_train, args.batch_size, sampler=sampler_train,
                                    drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
     data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
 
-    if args.dataset_file == "coco_panoptic":
-        # We also evaluate AP during panoptic training, on original coco DS
-        coco_val = datasets.coco.build("val", args)
-        base_ds = get_coco_api_from_dataset(coco_val)
-    else:
-        base_ds = get_coco_api_from_dataset(dataset_val)
-
-    if args.frozen_weights is not None:
-        checkpoint = torch.load(args.frozen_weights, map_location='cpu')
-        model_without_ddp.detr.load_state_dict(checkpoint['model'])
-
-    output_dir = Path(args.output_dir)
-    if args.resume:
-        if args.resume.startswith('https'):
-            checkpoint = torch.hub.load_state_dict_from_url(
-                args.resume, map_location='cpu', check_hash=True)
-        else:
-            checkpoint = torch.load(args.resume, map_location='cpu')
-
-        # del checkpoint['model']['class_embed.weight']
-        # del checkpoint['model']['class_embed.bias']
-
-        model_without_ddp.load_state_dict(checkpoint['model'])
-        # model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-            args.start_epoch = checkpoint['epoch'] + 1
-
-    if args.eval:
-        test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
-                                              data_loader_val, base_ds, device, args.output_dir)
-        if args.output_dir:
-            utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
-        return
+    # if args.dataset_file == "coco_panoptic":
+    #     # We also evaluate AP during panoptic training, on original coco DS
+    #     coco_val = datasets.coco.build("val", args)
+    #     base_ds = get_coco_api_from_dataset(coco_val)
+    # else:
+    #     base_ds = get_coco_api_from_dataset(dataset_val)
 
     print("Start Inference")
     start_time = time.time()
@@ -209,18 +156,49 @@ def main(args):
     #Check if the path for dataset exists, else create the directory.
     if not os.path.isdir(args.coco_panoptic_path):
         os.mkdir(args.coco_panoptic_path)
-    if not os.path.isdir(args.coco_panoptic_path + '/panoptic/'):
-        os.mkdir(args.coco_panoptic_path + '/panoptic/')
+
     if not os.path.isdir(args.coco_panoptic_path + '/annotations/'):
         os.mkdir(args.coco_panoptic_path + '/annotations/')
+    if not os.path.isdir(args.coco_panoptic_path + '/annotations/panoptic_train/'):
+        os.mkdir(args.coco_panoptic_path + '/annotations/panoptic_train/')
+    if not os.path.isdir(args.coco_panoptic_path + '/annotations/panoptic_val/'):
+        os.mkdir(args.coco_panoptic_path + '/annotations/panoptic_val/')
 
     result = inference(
-        model, postprocessors, data_loader_val, device, args.coco_panoptic_path
+        model, postprocessors, data_loader_val, device, args.coco_panoptic_path + '/annotations/panoptic_val/'
     )
+    # read the source json and take fields from there
+    src_json = json.load(open(args.data_path + "annotations/val_coco.json"))
+    dst_json = {"categories" : src_json["categories"],
+                "licenses": src_json["licenses"],
+                "info": src_json["info"]
+                }
+    final_json = dict(result, **dst_json)
 
-    annotFile = args.coco_panoptic_path + '/annotations/panoptic.json'
+    annotFile = args.coco_panoptic_path + '/annotations/val_panoptic.json'
     with open(annotFile, 'w') as f:
-        json.dump(result, f, sort_keys=True, indent=4)
+        json.dump(final_json, f, sort_keys=True, indent=4)
+
+    total_time = time.time() - start_time
+    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
+    print('Validation data time {}'.format(total_time_str))
+
+    start_time = time.time()
+#     Train dataset
+    result = inference(
+        model, postprocessors, data_loader_train, device, args.coco_panoptic_path + '/annotations/panoptic_train/'
+    )
+    # read the source json and take fields from there
+    src_json = json.load(open(args.data_path + "annotations/train_coco.json"))
+    dst_json = {"categories": src_json["categories"],
+                "licenses": src_json["licenses"],
+                "info": src_json["info"]
+                }
+    final_json = dict(result, **dst_json)
+
+    annotFile = args.coco_panoptic_path + '/annotations/train_panoptic.json'
+    with open(annotFile, 'w') as f:
+        json.dump(final_json, f, sort_keys=True, indent=4)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
