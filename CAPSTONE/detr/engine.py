@@ -197,8 +197,11 @@ def inference(model, postprocessors, data_loader, device, coco_panoptic_path):
                                 'file_name': outputFileName,
                                 "segments_info": segment_info['segments_info']})
             panopticImagePath = coco_panoptic_path
-            Image.open(io.BytesIO(segment_info['png_string'])).save(os.path.join(panopticImagePath, outputFileName))
+            buf = io.BytesIO(segment_info['png_string'])
+            Image.open(buf).save(os.path.join(panopticImagePath, outputFileName))
+            del buf
 
+        del outputs, orig_target_sizes, masks, mask_labels
         gc.collect()
         torch.cuda.empty_cache()
 
