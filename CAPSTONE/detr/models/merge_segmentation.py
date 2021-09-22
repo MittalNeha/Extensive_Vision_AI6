@@ -111,7 +111,7 @@ class PostProcessPanopticInstance(nn.Module):
 
             # cur_classes.append(cur_instance_label)
             cur_classes = torch.cat((cur_classes, cur_instance_label))
-            cur_scores = torch.cat((cur_scores, torch.Tensor([1])))
+            cur_scores = torch.cat((cur_scores, torch.Tensor([1]).to(cur_scores.device)))
             # print("Classes: {}".format(cur_classes))
 
             # It may be that we have several predicted masks for the same stuff class.
@@ -131,7 +131,7 @@ class PostProcessPanopticInstance(nn.Module):
                 m_id = masks.transpose(0, 1).softmax(-1)
 
                 #Combine these masks with the input_segments
-                m_id = torch.cat((m_id, custom_mask), 1)
+                m_id = torch.cat((m_id, custom_mask.to(m_id.device)), 1)
 
                 if m_id.shape[-1] == 0:
                     # We didn't detect any mask :(
@@ -183,7 +183,7 @@ class PostProcessPanopticInstance(nn.Module):
                         cur_classes = cur_classes[~filtered_small]
                         cur_masks = cur_masks[~filtered_small[:-1]]
                         #Add the score for the last class
-                        cur_scores = torch.cat((cur_scores, torch.Tensor([1])))
+                        cur_scores = torch.cat((cur_scores, torch.Tensor([1]).to(cur_scores.device)))
                         area, seg_img, segment_ids = get_ids_area_bbox(cur_masks, cur_scores)
                     else:
                         break
@@ -196,7 +196,7 @@ class PostProcessPanopticInstance(nn.Module):
             m_id = cur_masks.transpose(0, 1).softmax(-1)
 
             # Combine these masks with the input_segments
-            m_id = torch.cat((m_id, custom_mask), 1)
+            m_id = torch.cat((m_id, custom_mask.to(m_id.device)), 1)
 
             if m_id.shape[-1] == 0:
                 # We didn't detect any mask :(
@@ -213,9 +213,10 @@ class PostProcessPanopticInstance(nn.Module):
             m_id_copy = m_id.detach().clone()
             for seg_id in range(len(new_id)):
                 seg_mask = m_id_copy == seg_id
+                seg_mask = seg_mask.to(torch.device("cpu"))
                 bboxes.append(masks_to_boxes(seg_mask).squeeze().int().tolist())
                 # print("box {}, ({},{}) = {}".format(seg_id,h, w, masks_to_boxes(seg_mask)))
-                m_id[m_id_copy == seg_id] = new_id[seg_id]
+                m_id[m_id_copy == seg_id] = new_id[seg_id].to(m_id.device)
 
             final_h, final_w = to_tuple(target_size)
             seg_img = Image.fromarray(id2rgb(m_id.view(h, w).cpu().numpy()))
@@ -232,7 +233,7 @@ class PostProcessPanopticInstance(nn.Module):
 
             area = []
             # scores = cur_scores.append
-            scores = torch.cat((cur_scores, torch.Tensor([1])))
+            scores = torch.cat((cur_scores, torch.Tensor([1]).to(cur_scores.device)))
             for idx, seg_id in enumerate(new_id):
                 area.append(m_id.eq(seg_id).sum().item())
             print(area)

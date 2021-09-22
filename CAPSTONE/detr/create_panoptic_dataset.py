@@ -125,6 +125,7 @@ def main(args):
     #TODO: Needs to be replaced with getting the model from hub
     #get the model from hib
     model, postprocessors = detr_resnet50_panopticinstance(pretrained=True, return_postprocessor=True)
+    model.to(device)
     model.eval()
 
     dataset_train = build_dataset(image_set='train', args=args)
