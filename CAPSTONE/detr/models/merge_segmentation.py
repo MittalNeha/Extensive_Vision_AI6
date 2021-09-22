@@ -43,6 +43,7 @@ class PostProcessPanopticInstance(nn.Module):
         self.threshold = threshold
         self.is_thing_map = is_thing_map
 
+    @torch.no_grad()
     def forward(self, outputs, processed_sizes, input_segments, input_segment_labels, target_sizes=None):
         """ This function computes the panoptic prediction from the model's predictions.
         Parameters:
@@ -227,7 +228,7 @@ class PostProcessPanopticInstance(nn.Module):
                 torch.ByteTensor(torch.ByteStorage.from_buffer(seg_img.tobytes())).view(final_h, final_w, 3).numpy()
             )
             m_id = torch.from_numpy(rgb2id(np_seg_img))
-            print(m_id.unique())
+            # print(m_id.unique())
 
             segment_ids = m_id.unique()
 
@@ -236,7 +237,7 @@ class PostProcessPanopticInstance(nn.Module):
             scores = torch.cat((cur_scores, torch.Tensor([1]).to(cur_scores.device)))
             for idx, seg_id in enumerate(new_id):
                 area.append(m_id.eq(seg_id).sum().item())
-            print(area)
+            # print(area)
 
             #Check for the area of the custom class and remove the index if it is small
             if area[-1] <4:

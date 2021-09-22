@@ -14,7 +14,7 @@ from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
 from PIL import Image
 import io
-
+import gc
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -198,6 +198,9 @@ def inference(model, postprocessors, data_loader, device, coco_panoptic_path):
                                 "segments_info": segment_info['segments_info']})
             panopticImagePath = coco_panoptic_path
             Image.open(io.BytesIO(segment_info['png_string'])).save(os.path.join(panopticImagePath, outputFileName))
+
+        gc.collect()
+        torch.cuda.empty_cache()
 
         #also, the name of the mask will be the image_id. and the segments_info "id" to be derived from the RGB value of each segment
     d = {'images': images,
