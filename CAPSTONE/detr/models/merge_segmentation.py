@@ -255,6 +255,7 @@ class PostProcessPanopticInstance(nn.Module):
                 segments_info.append({"id": int(segment_ids[i]),
                                       "category_id": cat,
                                       "area": a,
+                                      "iscrowd": int(0),
                                       "bbox": bboxes[i]})
             del cur_classes
 
