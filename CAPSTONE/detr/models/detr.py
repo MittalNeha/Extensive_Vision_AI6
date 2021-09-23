@@ -317,9 +317,9 @@ def build(args):
     #     num_classes = 250
 
     if args.dataset_file == 'materials':
-        num_classes = 59
+        num_classes = 102
     if args.dataset_file == "coco_panoptic":
-        num_classes = 59
+        num_classes = 102
     device = torch.device(args.device)
 
     backbone = build_backbone(args)
