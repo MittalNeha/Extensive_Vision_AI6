@@ -78,14 +78,14 @@ class CocoPanoptic:
 
 
 def build(image_set, args):
-    img_folder_root = Path(args.coco_path)
+    img_folder_root = Path(args.data_path)
     ann_folder_root = Path(args.coco_panoptic_path)
     assert img_folder_root.exists(), f'provided COCO path {img_folder_root} does not exist'
     assert ann_folder_root.exists(), f'provided COCO path {ann_folder_root} does not exist'
     mode = 'panoptic'
     PATHS = {
-        "train": ("train2017", Path("annotations") / f'{mode}_train2017.json'),
-        "val": ("val2017", Path("annotations") / f'{mode}_val2017.json'),
+        "train": ("materials_train", Path(f'train_{mode}.json')),
+        "val": ("materials_val", Path(f'val_{mode}.json')),
     }
 
     img_folder, ann_file = PATHS[image_set]
