@@ -131,6 +131,24 @@ def get_args_parser():
 def infer(images_path, model, postprocessors, device, output_path):
     model.eval()
     duration = 0
+    CLASSES = ['misc_stuff', 'banner', 'blanket', 'bridge', 'cardboard', 'counter', 
+    'curtain', 'door-stuff', 'floor-wood', 'flower', 'fruit', 'gravel', 'house', 'light', 
+    'mirror-stuff', 'net', 'pillow', 'platform', 'playingfield', 'railroad', 'river', 'road', 
+    'roof', 'sand', 'sea', 'shelf', 'snow', 'stairs', 'tent', 'towel', 'wall-brick',
+    'wall-stone', 'wall-tile', 'wall-wood', 'water-other', 'window-blind', 'window-other', 
+    'tree-merged', 'fence-merged', 'ceiling-merged', 'sky-other-merged', 'cabinet-merged',
+    'table-merged', 'floor-other-merged', 'pavement-merged', 'mountain-merged', 'grass-merged', 
+    'dirt-merged', 'paper-merged', 'food-other-merged', 'building-other-merged', 'rock-merged', 
+    'wall-other-merged', 'rug-merged', 'structural_steel_-_channel', 'aluminium_frames_for_false_ceiling',
+    'dump_truck___tipper_truck', 'lime', 'water_tank', 'hot_mix_plant', 'adhesives', 
+    'aac_blocks', 'texture_paint', 'transit_mixer', 'metal_primer', 'fine_aggregate', 
+    'skid_steer_loader_(bobcat)', 'rmu_units', 'enamel_paint', 'cu_piping', 'vcb_panel', 
+    'hollow_concrete_blocks', 'chiller', 'rcc_hume_pipes', 'wheel_loader', 'emulsion_paint',
+    'grader', 'refrigerant_gas', 'smoke_detectors', 'fire_buckets', 'interlocked_switched_socket',
+    'glass_wool', 'control_panel', 'river_sand', 'pipe_fittings', 'concrete_mixer_machine',
+    'threaded_rod', 'vitrified_tiles', 'vrf_units', 'concrete_pump_(50%)', 'sanitary_fixtures',
+    'marble', 'split_units', 'fire_extinguishers', 'hydra_crane', 'hoist', 'junction_box',
+    'wood_primer', 'switch_boards_and_switches', 'distribution_transformer', 'ahus', 'rmc_batching_plant']
     for img_sample in images_path:
         filename = os.path.basename(img_sample)
         print("processing...{}".format(filename))
@@ -198,9 +216,12 @@ def infer(images_path, model, postprocessors, device, output_path):
 
         img = np.array(orig_image)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        for idx, box in enumerate(bboxes_scaled):
+        for p, box in zip(probas, bboxes_scaled):
+        # for idx, box in enumerate(bboxes_scaled):
             bbox = box.cpu().data.numpy()
             bbox = bbox.astype(np.int32)
+            x, y = bbox[0], bbox[1]
+            w, h = bbox[2], bbox[3]
             bbox = np.array([
                 [bbox[0], bbox[1]],
                 [bbox[2], bbox[1]],
@@ -209,9 +230,21 @@ def infer(images_path, model, postprocessors, device, output_path):
                 ])
             bbox = bbox.reshape((4, 2))
             cv2.polylines(img, [bbox], True, (0, 255, 0), 2)
+            cl = p.argmax()
+            text = f'{CLASSES[cl]}: {p[cl]:0.2f}'
+            img = cv2.putText(
+                img=img,
+                text=text,
+                org=(x + 5, y + int(h/2)),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=3.0,
+                color=(125, 246, 55),
+                thickness=3
+            )
 
+        out_img = cv2.hconcat([cv2.cvtColor(np.array(orig_image), cv2.COLOR_BGR2RGB), img])
         img_save_path = os.path.join(output_path, filename)
-        cv2.imwrite(img_save_path, img)
+        cv2.imwrite(img_save_path, out_img)
         # cv2.imshow("img", img)
         # cv2.waitKey()
         infer_time = end_t - start_t
