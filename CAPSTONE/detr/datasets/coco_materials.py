@@ -46,9 +46,9 @@ def convert_poly_to_mask(segmentations, height, width):
         points = np.array(polygons, dtype=np.int32).reshape(-1, 2)
         masks.append(points)
 
-    image_masks = np.zeros((width,
-                            height, 1),
-                           np.uint8)
+    image_masks = np.zeros((height,
+                            width, 1),
+                            np.uint8)
     if len(masks) > 0:
         # masks = torch.stack(masks, dim=0)
         cv.drawContours(image_masks, masks, -1, (255, 255, 255), -1)
