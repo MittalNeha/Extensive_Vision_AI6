@@ -21,7 +21,9 @@ from datasets.materials import make_coco_transforms
 
 import matplotlib.pyplot as plt
 import time
-
+import json
+from collections import defaultdict
+import textwrap
 
 def box_cxcywh_to_xyxy(x):
     x_c, y_c, w, h = x.unbind(1)
@@ -124,6 +126,8 @@ def get_args_parser():
 
     parser.add_argument('--thresh', default=0.5, type=float)
 
+    parser.add_argument('--annot_path', type=str)
+
     return parser
 
 
@@ -131,14 +135,20 @@ def get_args_parser():
 def infer(images_path, model, postprocessors, device, output_path):
     model.eval()
     duration = 0
-    CLASSES = ['misc_stuff', 'banner', 'blanket', 'bridge', 'cardboard', 'counter', 
-    'curtain', 'door-stuff', 'floor-wood', 'flower', 'fruit', 'gravel', 'house', 'light', 
-    'mirror-stuff', 'net', 'pillow', 'platform', 'playingfield', 'railroad', 'river', 'road', 
-    'roof', 'sand', 'sea', 'shelf', 'snow', 'stairs', 'tent', 'towel', 'wall-brick',
-    'wall-stone', 'wall-tile', 'wall-wood', 'water-other', 'window-blind', 'window-other', 
-    'tree-merged', 'fence-merged', 'ceiling-merged', 'sky-other-merged', 'cabinet-merged',
-    'table-merged', 'floor-other-merged', 'pavement-merged', 'mountain-merged', 'grass-merged', 
-    'dirt-merged', 'paper-merged', 'food-other-merged', 'building-other-merged', 'rock-merged', 
+    CLASSES = ['N/A', 'misc_stuff', 'banner', 'blanket', 'bridge', 'cardboard', 'counter',
+    'curtain', 'door-stuff', 'floor-wood', 'flower', 'fruit',
+               'gravel', 'house', 'light',
+    'mirror-stuff', 'net',
+               'pillow', 'platform', 'playingfield', 'railroad', 'river',
+               'road', 'roof', 'sand', 'sea', 'shelf',
+               'snow', 'stairs', 'tent', 'towel', 'wall-brick',
+    'wall-stone', 'wall-tile', 'wall-wood', 'water-other', 'window-blind',
+               'window-other', 'tree-merged', 'fence-merged', 'ceiling-merged', 'sky-other-merged',
+               'cabinet-merged',
+    'table-merged', 'floor-other-merged', 'pavement-merged', 'mountain-merged',
+               'grass-merged',
+    'dirt-merged', 'paper-merged', 'food-other-merged', 'building-other-merged',
+               'rock-merged',
     'wall-other-merged', 'rug-merged', 'structural_steel_-_channel', 'aluminium_frames_for_false_ceiling',
     'dump_truck___tipper_truck', 'lime', 'water_tank', 'hot_mix_plant', 'adhesives', 
     'aac_blocks', 'texture_paint', 'transit_mixer', 'metal_primer', 'fine_aggregate', 
@@ -254,115 +264,223 @@ def infer(images_path, model, postprocessors, device, output_path):
     avg_duration = duration / len(images_path)
     print("Avg. Time: {:.3f}s".format(avg_duration))
 
+#function to put label for each bound box
+def drawBoxLabel(img, bbox, color, label):
+    text_color = (0,0,0)
+    # color = (0, 0, 255)
+    x1, y1 = bbox[0], bbox[1]
+    x2, y2 = x1+bbox[2], y1+bbox[3]
+    # For bounding box
+    img = cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+    
+    # For the text background
+    # Finds space required by the text so that we can put a background with that amount of width.
+    (w, h), _ = cv2.getTextSize(
+            label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+
+    # Prints the text.    
+    img = cv2.rectangle(img, (x1, y1), (x1 + w, y1 + 20), color, -1)
+    img = cv2.putText(img, label, (x1, y1 + h),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, text_color, 2)
+
+def putWrappedText(img, pos, text, text_width=35, font = cv2.FONT_HERSHEY_SIMPLEX, text_color=(0,0,0)):
+    wrapped_text = textwrap.wrap(text, width=text_width)
+    X,Y = pos
+    font_size = 0.7
+    font_thickness = 2
+
+    for i, line in enumerate(wrapped_text):
+        textsize = cv2.getTextSize(line, font, font_size, font_thickness)[0]
+
+        gap = textsize[1] + 10
+
+        y = Y + i * gap
+        x = X
+
+        cv2.putText(img, line, (x, y), font,
+                    font_size, 
+                    text_color, 
+                    font_thickness, 
+                    lineType = cv2.LINE_AA)
+
+def save_subplots(out_file, images, title_text, subtext):
+
+    final_img = []
+    canvas_width = 800
+
+    for img, text, subtext in zip(images, title_text, subtext):
+        height, width, ch = img.shape
+        # new_width, new_height = int(width + width/20), int(height + height/8)
+        canvas_height = int(canvas_width*(height/width))
+
+        # Crate a new canvas with new width and height.
+        canvas = np.ones((canvas_height+60, canvas_width, ch), dtype=np.uint8) * 150
+
+        # New replace the center of canvas with original image
+        padding_top, padding_left = 60, 10
+        img_width = canvas_width - 2*padding_left
+        img_height = canvas_height - 2*padding_top
+        if padding_top + img_height < canvas_height and padding_left + img_width < canvas_width:
+            canvas[padding_top:padding_top + img_height, padding_left:padding_left + img_width] = cv2.resize(img, (img_width, img_height), cv2.INTER_AREA)
+        else:
+            print("The Given padding exceeds the limits.")
+
+        img = cv2.putText(canvas.copy(), text, (int(0.25*canvas_width), 30), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
+
+        putWrappedText(img, (int(0.1*canvas_width), canvas_height-30), subtext, text_width=65,text_color=(0,255,255))
+        # img = cv2.putText(img, subtext, (int(0.1*canvas_width), canvas_height-30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+        final_img.append(img)
+        # img2 = cv2.putText(canvas.copy(), text2, (int(0.25*width), 30), cv2.FONT_HERSHEY_COMPLEX, 1, np.array([255, 0, 0]))
+
+    final = cv2.hconcat(final_img)
+    cv2.imwrite(out_file, final)
 
 @torch.no_grad()
-def detect(img_sample, model, device):
+def infer_compare(images_path, model, imgToAnns, device, output_path):
     model.eval()
     duration = 0
-    # for img_sample in images_path:
-    filename = os.path.basename(img_sample)
-    print("processing...{}".format(filename))
-    orig_image = Image.open(img_sample)
-    w, h = orig_image.size
-    # if orig_image.mode == 'RGBA':
-    #     background = Image.new("RGB", orig_image.size, (255, 255, 255))
-    #     background.paste(orig_image, mask=orig_image.split()[3])
-    #     orig_image = background.copy()
-    #     background.close()
-    transform = make_coco_transforms("val")
-    dummy_target = {
-        "size": torch.as_tensor([int(h), int(w)]),
-        "orig_size": torch.as_tensor([int(h), int(w)])
-    }
-    image, targets = transform(orig_image, dummy_target)
-    image = image.unsqueeze(0)
-    image = image.to(device)
+    CLASSES = ['N/A', 'misc_stuff', 'banner', 'blanket', 'bridge', 'cardboard', 'counter',
+    'curtain', 'door-stuff', 'floor-wood', 'flower', 'fruit', 'gravel', 'house', 'light',
+    'mirror-stuff', 'net', 'pillow', 'platform', 'playingfield', 'railroad', 'river', 'road',
+    'roof', 'sand', 'sea', 'shelf', 'snow', 'stairs', 'tent', 'towel', 'wall-brick',
+    'wall-stone', 'wall-tile', 'wall-wood', 'water-other', 'window-blind', 'window-other',
+    'tree-merged', 'fence-merged', 'ceiling-merged', 'sky-other-merged', 'cabinet-merged',
+    'table-merged', 'floor-other-merged', 'pavement-merged', 'mountain-merged', 'grass-merged',
+    'dirt-merged', 'paper-merged', 'food-other-merged', 'building-other-merged', 'rock-merged',
+    'wall-other-merged', 'rug-merged', 'structural_steel_-_channel', 'aluminium_frames_for_false_ceiling',
+    'dump_truck___tipper_truck', 'lime', 'water_tank', 'hot_mix_plant', 'adhesives',
+    'aac_blocks', 'texture_paint', 'transit_mixer', 'metal_primer', 'fine_aggregate',
+    'skid_steer_loader_(bobcat)', 'rmu_units', 'enamel_paint', 'cu_piping', 'vcb_panel',
+    'hollow_concrete_blocks', 'chiller', 'rcc_hume_pipes', 'wheel_loader', 'emulsion_paint',
+    'grader', 'refrigerant_gas', 'smoke_detectors', 'fire_buckets', 'interlocked_switched_socket',
+    'glass_wool', 'control_panel', 'river_sand', 'pipe_fittings', 'concrete_mixer_machine',
+    'threaded_rod', 'vitrified_tiles', 'vrf_units', 'concrete_pump_(50%)', 'sanitary_fixtures',
+    'marble', 'split_units', 'fire_extinguishers', 'hydra_crane', 'hoist', 'junction_box',
+    'wood_primer', 'switch_boards_and_switches', 'distribution_transformer', 'ahus', 'rmc_batching_plant']
+    num_images = 0
+    for img_sample in images_path:
+        num_images += 1
+        if num_images > 100:
+            break
+        filename = os.path.basename(img_sample)
+        n = ''.join(x for x in filename if x.isdigit())
+        img_id = int(n)
+        # print("processing...{}".format(filename))
+        orig_image = Image.open(img_sample)
+        w, h = orig_image.size
+        print(orig_image.size)
+        if orig_image.mode == 'RGBA':
+            background = Image.new("RGB", orig_image.size, (255, 255, 255))
+            background.paste(orig_image, mask=orig_image.split()[3])
+            orig_image = background.copy()
+            background.close()
+        transform = make_coco_transforms("val")
+        dummy_target = {
+            "size": torch.as_tensor([int(h), int(w)]),
+            "orig_size": torch.as_tensor([int(h), int(w)])
+        }
+        image, targets = transform(orig_image, dummy_target)
+        image = image.unsqueeze(0)
+        image = image.to(device)
 
-    conv_features, enc_attn_weights, dec_attn_weights = [], [], []
-    hooks = [
-        model.backbone[-2].register_forward_hook(
-                    lambda self, input, output: conv_features.append(output)
 
-        ),
-        model.transformer.encoder.layers[-1].self_attn.register_forward_hook(
-                    lambda self, input, output: enc_attn_weights.append(output[1])
+        conv_features, enc_attn_weights, dec_attn_weights = [], [], []
+        hooks = [
+            model.backbone[-2].register_forward_hook(
+                        lambda self, input, output: conv_features.append(output)
 
-        ),
-        model.transformer.decoder.layers[-1].multihead_attn.register_forward_hook(
-                    lambda self, input, output: dec_attn_weights.append(output[1])
+            ),
+            model.transformer.encoder.layers[-1].self_attn.register_forward_hook(
+                        lambda self, input, output: enc_attn_weights.append(output[1])
 
-        ),
+            ),
+            model.transformer.decoder.layers[-1].multihead_attn.register_forward_hook(
+                        lambda self, input, output: dec_attn_weights.append(output[1])
 
-    ]
+            ),
 
-    start_t = time.perf_counter()
-    outputs = model(image)
-    end_t = time.perf_counter()
+        ]
 
-    outputs["pred_logits"] = outputs["pred_logits"].cpu()
-    outputs["pred_boxes"] = outputs["pred_boxes"].cpu()
+        start_t = time.perf_counter()
+        outputs = model(image)
+        end_t = time.perf_counter()
 
-    probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
-    # keep = probas.max(-1).values > 0.85
-    keep = probas.max(-1).values > args.thresh
+        outputs["pred_logits"] = outputs["pred_logits"].cpu()
+        outputs["pred_boxes"] = outputs["pred_boxes"].cpu()
 
-    bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep], orig_image.size)
-    probas = probas[keep].cpu().data.numpy()
+        probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
+        # keep = probas.max(-1).values > 0.85
+        keep = probas.max(-1).values > args.thresh
 
-    for hook in hooks:
-        hook.remove()
+        bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep], orig_image.size)
+        probas = probas[keep].cpu().data.numpy()
 
-    conv_features = conv_features[0]
-    enc_attn_weights = enc_attn_weights[0]
-    dec_attn_weights = dec_attn_weights[0].cpu()
+        for hook in hooks:
+            hook.remove()
 
-    # get the feature map shape
-    h, w = conv_features['0'].tensors.shape[-2:]
+        conv_features = conv_features[0]
+        enc_attn_weights = enc_attn_weights[0]
+        dec_attn_weights = dec_attn_weights[0].cpu()
 
-    infer_time = end_t - start_t
-    duration += infer_time
-    print("Processing...{} ({:.3f}s)".format(filename, infer_time))
+        # get the feature map shape
+        h, w = conv_features['0'].tensors.shape[-2:]
 
+        if len(bboxes_scaled) == 0:
+            print('0 bboxes')
+            continue
+
+        img = np.array(orig_image)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        p_text = None
+        for p, box in zip(probas, bboxes_scaled):
+        # for idx, box in enumerate(bboxes_scaled):
+            bbox = box.cpu().data.numpy()
+            bbox = bbox.astype(np.int32)
+            x, y = bbox[0], bbox[1]
+            w, h = bbox[2], bbox[3]
+            cl = p.argmax()
+            text = f'{CLASSES[cl]}: {p[cl]:0.2f}'
+            # print(text)
+            drawBoxLabel(img, bbox, (0,255,0), text)
+            if p_text is None:
+                p_text = "{}, {}".format(p_text, text)
+            else:
+                p_text = text
+
+        # img_gt = orig_image.copy()
+        img_gt = np.array(orig_image)
+        img_gt = cv2.cvtColor(img_gt, cv2.COLOR_BGR2RGB)
+        gt_text = None
+        for img_ann in imgToAnns[img_id]:
+            bbox = np.array(img_ann['bbox'])
+
+            bbox = bbox.astype(np.int32)
+            cl = img_ann['category_id']
+            text = f'{CLASSES[cl]}'
+            
+            drawBoxLabel(img_gt, bbox, (0,255,255), text)
+            # print(text)
+            if gt_text is not None: 
+                gt_text = "{}, {}".format(gt_text, text)
+            else:
+                gt_text = text
+
+        # out_img = cv2.hconcat([cv2.cvtColor(np.array(orig_image), cv2.COLOR_BGR2RGB),img_gt, img])
+        img_save_path = os.path.join(output_path, filename)
+        
+        save_subplots(img_save_path, [img_gt, img],
+        ["Ground Truth", "Predicted"], [gt_text, p_text])
+
+        # save_subplots(img_save_path, [cv2.cvtColor(np.array(orig_image), cv2.COLOR_BGR2RGB),img_gt, img],
+        # ["input image", "Ground Truth", "Predicted"], ["", gt_text, p_text])
+
+        infer_time = end_t - start_t
+        duration += infer_time
+        print("Processing...{} ({:.3f}s)".format(filename, infer_time))
+        
     avg_duration = duration / len(images_path)
     print("Avg. Time: {:.3f}s".format(avg_duration))
 
-    return probas, bboxes_scaled
-
-
-def plot_results(img_path, prob, boxes):
-    CLASSES = ['aac_blocks', 'ahus', 'lime']
-
-    img = Image.open(img_path)
-
-    for p, box in zip(prob, boxes):
-        bbox = box.cpu().data.numpy()
-        bbox = bbox.astype(np.int32)
-        bbox = np.array([
-            [bbox[0], bbox[1]],
-            [bbox[2], bbox[1]],
-            [bbox[2], bbox[3]],
-            [bbox[0], bbox[3]],
-            ])
-        bbox = bbox.reshape((4, 2))
-        cv2.polylines(img, [bbox], True, (0, 255, 0), 2)
-
-        cl = p.argmax()
-        text = f'{CLASSES[cl]}: {p[cl]:0.2f}'
-        img = cv2.putText(
-            img=img,
-            text=text,
-            org=(bbox[0], bbox[1]),
-            fontFace=cv2.FONT_HERSHEY_DUPLEX,
-            fontScale=3.0,
-            color=(125, 246, 55),
-            thickness=3
-        )
-
-    filename = os.path.basename(img_path)
-    img_save_path = os.path.join(args.output_dir, filename)
-    cv2.imwrite(img_save_path, img)
-    # cv2.imshow("img", img)
-    # cv2.waitKey()
 
 
 if __name__ == "__main__":
@@ -380,4 +498,13 @@ if __name__ == "__main__":
     model.to(device)
     image_paths = get_images(args.data_path)
 
-    infer(image_paths, model, postprocessors, device, args.output_dir)
+    #Form imgToAnn
+    f = open(args.annot_path)
+    json_input = json.load(f)
+    f.close()
+    imgToAnns = defaultdict(list)
+
+    for annotations in json_input['annotations']:
+        imgToAnns[annotations['image_id']].append(annotations)
+
+    infer_compare(image_paths, model, imgToAnns, device, args.output_dir)
