@@ -29,6 +29,9 @@ import itertools
 import seaborn as sns
 import io
 from panopticapi.utils import id2rgb, rgb2id
+#from detectron2.data import DatasetCatalog, MetadataCatalog
+#from detectron2.utils.visualizer import Visualizer
+
 
 def box_cxcywh_to_xyxy(x):
     x_c, y_c, w, h = x.unbind(1)
@@ -355,7 +358,7 @@ def infer_compare(images_path, model, imgToAnns, device, output_path):
 
 
 @torch.no_grad()
-def infer_segm(images_path, model, postprocessor, device, output_path):
+def infer_segm(images_path, model, postprocessor, device, output_path, meta):
     model.eval()
     duration = 0
     CLASSES = ['N/A', 'misc_stuff', 'banner', 'blanket', 'bridge', 'cardboard', 'counter',
@@ -408,23 +411,17 @@ def infer_segm(images_path, model, postprocessor, device, output_path):
         # compute the scores, excluding the "no-object" class (the last one)
         scores = outputs["pred_logits"].softmax(-1)[..., :-1].max(-1)[0]
         # threshold the confidence
-        keep = scores > args.thresh
+        # keep = scores > args.thresh
 
-        # outputs["pred_logits"] = outputs["pred_logits"].cpu()
-        # outputs["pred_boxes"] = outputs["pred_boxes"].cpu()
-        #
-        # probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
-        # # keep = probas.max(-1).values > 0.85
-        # keep = probas.max(-1).values > args.thresh
-
-        # bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep], orig_image.size)
-        # probas = probas[keep].cpu().data.numpy()
         result = postprocessor(outputs, torch.as_tensor(image.shape[-2:]).unsqueeze(0))[0]
+
+        segments_info = result["segments_info"]
 
         palette = itertools.cycle(sns.color_palette())
 
         # The segmentation is stored in a special-format png
         panoptic_seg = Image.open(io.BytesIO(result['png_string']))
+        final_w, final_h = panoptic_seg.size
         panoptic_seg = np.array(panoptic_seg, dtype=np.uint8).copy()
         # We retrieve the ids corresponding to each mask
         panoptic_seg_id = rgb2id(panoptic_seg)
@@ -434,17 +431,50 @@ def infer_segm(images_path, model, postprocessor, device, output_path):
             infer_time = end_t - start_t
             continue
 
+        # plotting segmentation
+        # for i in range(len(segments_info)):
+        #     c = segments_info[i]["category_id"]
+        #     segments_info[i]["category_id"] = meta.thing_dataset_id_to_contiguous_id[c] if segments_info[i][
+        #         "isthing"] else meta.stuff_dataset_id_to_contiguous_id[c]
+        # 
+        # # Finally visualize the prediction
+        # v = Visualizer(np.array(orig_image.copy().resize((final_w, final_h)))[:, :, ::-1], meta, scale=1.0)
+        # v._default_font_size = 18
+        # v = v.draw_panoptic_seg_predictions(panoptic_seg, segments_info, area_threshold=0, alpha=0.4)
+        # img_seg = cv2.resize(v.get_image(), (w, h))
+
         # Finally we color each mask individually
         panoptic_seg[:, :, :] = 0
         for id in range(panoptic_seg_id.max() + 1):
             panoptic_seg[panoptic_seg_id == id] = np.asarray(next(palette)) * 255
+        p_text = None
+        for i in range(len(segments_info)):
+            c = segments_info[i]["category_id"]
+            text = CLASSES[c]
+            print(CLASSES[c])
+            if p_text is not None:
+                p_text = "{}, {}".format(p_text, text)
+            else:
+                p_text = text
         img_save_path = os.path.join(output_path, filename)
-
+        #
         img = np.array(orig_image)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        print(img.shape)
+        print(panoptic_seg.shape)
+        print(img_sample)
         img = cv2.resize(img, (panoptic_seg.shape[-2], panoptic_seg.shape[-3]), cv2.INTER_NEAREST)
-        save_subplots(img_save_path, [img, panoptic_seg],
-        ["Ground Truth", "Predicted"], ["", ""])
+
+        #get GT image
+        dir = img_sample.rsplit('/', 2)[0]
+        print(dir)
+        annot_dir =  "/annotations/panoptic_materials_val/"
+        img_gt = cv2.imread(dir + annot_dir + filename.replace('.jpg', '.png'))
+        # img_gt = Image.open(dir + annot_dir + filename.replace('.jpg', '.png'))
+
+        save_subplots(img_save_path, [img, img_gt, panoptic_seg],
+        ["Orig Image", "Ground Truth", "Predicted"], ["","", p_text])
 
         infer_time = end_t - start_t
         duration += infer_time
@@ -453,6 +483,31 @@ def infer_segm(images_path, model, postprocessor, device, output_path):
     avg_duration = duration / len(images_path)
     print("Avg. Time: {:.3f}s".format(avg_duration))
 
+
+def gen_matadata_detectron(json_input):
+    # generating META for custom dataset for visualiztion with detectron
+    thing_classes = []
+    stuff_classes = []
+    thing_dataset_id_to_contiguous_id = {}
+    stuff_dataset_id_to_contiguous_id = {}
+    thing_count = 0
+    stuff_count = 0
+    for cat in json_input['categories']:
+        if cat['isthing']:
+            thing_classes.append(cat['name'])
+            thing_dataset_id_to_contiguous_id[cat['id']] = thing_count
+            thing_count += 1
+        else:
+            stuff_classes.append(cat['name'])
+            stuff_dataset_id_to_contiguous_id[cat['id']] = stuff_count
+            stuff_count += 1
+
+    DatasetCatalog.register("construction_data", lambda: data['annotations'])
+    MetadataCatalog.get("construction_data").set(thing_classes=thing_classes, stuff_classes=stuff_classes,
+                                                 thing_dataset_id_to_contiguous_id=thing_dataset_id_to_contiguous_id,
+                                                 stuff_dataset_id_to_contiguous_id=stuff_dataset_id_to_contiguous_id)
+    meta = MetadataCatalog.get("construction_data")
+    return meta
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
@@ -480,6 +535,7 @@ if __name__ == "__main__":
 
     if args.masks:
         #This is the segmentation model
-        infer_segm(image_paths, model, postprocessors['panoptic'], device, args.output_dir)
+        # meta = gen_matadata_detectron(json_input)
+        infer_segm(image_paths, model, postprocessors['panoptic'], device, args.output_dir, None)
     else:
         infer_compare(image_paths, model, imgToAnns, device, args.output_dir)
