@@ -471,7 +471,7 @@ def infer_segm(images_path, model, postprocessor, device, output_path, meta):
         print(dir)
         annot_dir =  "/annotations/panoptic_materials_val/"
         img_gt = cv2.imread(dir + annot_dir + filename.replace('.jpg', '.png'))
-        # img_gt = Image.open(dir + annot_dir + filename.replace('.jpg', '.png'))
+        img_gt = cv2.resize(img_gt, (panoptic_seg.shape[-2], panoptic_seg.shape[-3]), cv2.INTER_NEAREST)
 
         save_subplots(img_save_path, [img, img_gt, panoptic_seg],
         ["Orig Image", "Ground Truth", "Predicted"], ["","", p_text])
