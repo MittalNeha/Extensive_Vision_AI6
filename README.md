@@ -1,5 +1,6 @@
 # Extensive Vision AI (EVA6)
-## Group Members: Neha Mittal, Vidya Shankar, Bhaskar Gaur, Abhijit Das
+Link to the repo with the work of rest of the weeks:
+https://github.com/Computer-Vision-Engineer-Vivek/EVA6
 
 **What are Channels and Kernels (according to EVA)?**
 
